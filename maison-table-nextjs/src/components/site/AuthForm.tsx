@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { sessionStore } from "@/lib/store";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
@@ -16,15 +16,17 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [err, setErr] = useState<Record<string, string>>({});
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [serverErr, setServerErr] = useState("");
 
   const schema = z.object({
-    name: mode === "register" ? z.string().trim().min(2, "Enter your name").max(80) : z.string(),
-    email: z.string().trim().email("Enter a valid email").max(255),
+    name:     mode === "register" ? z.string().trim().min(2, "Enter your name").max(80) : z.string(),
+    email:    z.string().trim().email("Enter a valid email").max(255),
     password: z.string().min(6, "At least 6 characters").max(100),
   });
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerErr("");
     const r = schema.safeParse(f);
     if (!r.success) {
       const o: Record<string, string> = {};
@@ -33,13 +35,51 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       return;
     }
     setLoading(true);
-    // Simulate a short async delay for realism
-    setTimeout(() => {
-      const name = f.name.trim() || f.email.split("@")[0]!;
-      sessionStore.set((s) => ({ ...s, customer: { name, email: f.email.trim() } }));
-      toast.success(mode === "login" ? `Welcome back, ${name}!` : `Account created. Welcome, ${name}!`);
+
+    if (mode === "register") {
+      // 1. Create account in MongoDB
+      const res = await fetch("/api/v1/auth/register", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ name: f.name.trim(), email: f.email.trim(), password: f.password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setServerErr(data.error ?? "Registration failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+      // 2. Sign in automatically after registration
+      const result = await signIn("credentials", {
+        email:    f.email.trim().toLowerCase(),
+        password: f.password,
+        redirect: false,
+      });
+      setLoading(false);
+      if (result?.error) {
+        setServerErr("Account created but sign-in failed. Please sign in manually.");
+        router.push("/login");
+        return;
+      }
+      toast.success(`Welcome, ${f.name.trim()}! Your account is ready.`);
       router.push("/account");
-    }, 600);
+      router.refresh();
+    } else {
+      // Login flow
+      const result = await signIn("credentials", {
+        email:    f.email.trim().toLowerCase(),
+        password: f.password,
+        redirect: false,
+      });
+      setLoading(false);
+      if (result?.error) {
+        setServerErr("Invalid email or password.");
+        return;
+      }
+      toast.success("Welcome back!");
+      router.push("/account");
+      router.refresh();
+    }
   };
 
   const field = (
@@ -50,9 +90,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     extra?: React.ReactNode,
   ) => (
     <div className="space-y-1.5">
-      <label htmlFor={k} className="block text-sm font-medium">
-        {label}
-      </label>
+      <label htmlFor={k} className="block text-sm font-medium">{label}</label>
       <div className="relative">
         <Input
           id={k}
@@ -67,28 +105,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         {extra}
       </div>
       {err[k] && (
-        <p id={`${k}-err`} className="text-xs text-destructive" role="alert">
-          {err[k]}
-        </p>
+        <p id={`${k}-err`} className="text-xs text-destructive" role="alert">{err[k]}</p>
       )}
     </div>
   );
 
   return (
     <div className="w-full max-w-md">
-      {/* Demo notice */}
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
-        <ShieldAlert className="size-4 shrink-0 mt-0.5 text-gold" />
-        <p className="text-muted-foreground">
-          <b className="text-foreground">Demo mode:</b> No real account is created. Your details are stored only in this browser. Passwords are never saved.
-        </p>
-      </div>
-
-      <form
-        onSubmit={submit}
-        noValidate
-        className="space-y-5 rounded-3xl border border-border bg-card p-8 shadow-soft"
-      >
+      <form onSubmit={submit} noValidate className="space-y-5 rounded-3xl border border-border bg-card p-8 shadow-soft">
         <div className="space-y-1">
           <h1 className="font-display text-4xl font-medium">
             {mode === "login" ? "Welcome back" : "Join the table"}
@@ -96,15 +120,18 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           <p className="text-sm text-muted-foreground">
             {mode === "login"
               ? "Sign in to track orders and save your details."
-              : "Create a demo account to start ordering."}
+              : "Create an account to start ordering."}
           </p>
         </div>
 
-        {mode === "register" &&
-          field("name", "Full name", "text", "name")}
+        {serverErr && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {serverErr}
+          </div>
+        )}
 
+        {mode === "register" && field("name", "Full name", "text", "name")}
         {field("email", "Email address", "email", "email")}
-
         {field(
           "password",
           "Password",
@@ -121,12 +148,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </button>,
         )}
 
-        <Button
-          type="submit"
-          variant="hero"
-          className="h-12 w-full"
-          disabled={loading}
-        >
+        <Button type="submit" variant="hero" className="h-12 w-full" disabled={loading}>
           {loading ? (
             <span className="flex items-center gap-2">
               <span className="size-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -139,19 +161,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
         <p className="text-center text-sm text-muted-foreground">
           {mode === "login" ? (
-            <>
-              New here?{" "}
-              <Link href="/register" className="font-semibold text-terracotta hover:underline">
-                Create an account
-              </Link>
-            </>
+            <>New here?{" "}<Link href="/register" className="font-semibold text-terracotta hover:underline">Create an account</Link></>
           ) : (
-            <>
-              Already have an account?{" "}
-              <Link href="/login" className="font-semibold text-terracotta hover:underline">
-                Sign in
-              </Link>
-            </>
+            <>Already have an account?{" "}<Link href="/login" className="font-semibold text-terracotta hover:underline">Sign in</Link></>
           )}
         </p>
       </form>
