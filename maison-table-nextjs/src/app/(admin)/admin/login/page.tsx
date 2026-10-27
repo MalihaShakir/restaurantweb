@@ -61,7 +61,6 @@ export default function AdminLoginPage() {
           <ShieldAlert className="mt-0.5 size-4 shrink-0 text-gold" />
           <p className="text-sidebar-foreground/70">
             <b className="text-sidebar-foreground">Secure login.</b> Use your staff credentials.
-            First-time setup: run <code className="rounded bg-muted px-1">npm run seed</code>.
           </p>
         </div>
 
