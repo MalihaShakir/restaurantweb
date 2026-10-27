@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { cart } from "@/lib/store";
 import { fmt } from "@/lib/brand";
 import type { MenuItem } from "@/lib/types";
-import { DietTag } from "@/components/badges";
 
 export function DishCard({ item, onOpen }: { item: MenuItem; onOpen?: (i: MenuItem) => void }) {
   const add = (e: React.MouseEvent) => {
@@ -75,12 +74,7 @@ export function DishCard({ item, onOpen }: { item: MenuItem; onOpen?: (i: MenuIt
 
         <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">{item.description}</p>
 
-        <div className="mt-auto flex items-center justify-between pt-3">
-          {/* Dietary tags */}
-          <div className="flex flex-wrap gap-1">
-            {item.dietary.slice(0, 3).map((d) => <DietTag key={d} d={d} />)}
-          </div>
-
+        <div className="mt-auto flex items-center justify-end pt-3">
           {/* Add to cart */}
           <button
             type="button"

@@ -122,6 +122,7 @@ function Footer() {
           <Link href="/about" className="hover:text-gold">Our story</Link>
           <Link href="/contact" className="hover:text-gold">Contact</Link>
           <Link href="/account/orders" className="hover:text-gold">My orders</Link>
+          <Link href="/admin/login" className="hover:text-gold">Staff login</Link>
         </div>
       </div>
       <div className="border-t border-cream/10">
