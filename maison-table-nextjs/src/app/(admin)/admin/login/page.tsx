@@ -29,7 +29,17 @@ export default function AdminLoginPage() {
     if (res?.error) {
       setError("Invalid email or password.");
     } else {
-      router.push("/admin/dashboard");
+      // Role-based redirect — fetch session to check role
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+      const role = session?.user?.role;
+      if (role === "rider") {
+        router.push("/rider");
+      } else if (role === "staff") {
+        router.push("/admin/kitchen");
+      } else {
+        router.push("/admin/dashboard");
+      }
       router.refresh();
     }
   };
@@ -58,7 +68,7 @@ export default function AdminLoginPage() {
         <form onSubmit={submit} className="space-y-4 rounded-2xl border border-sidebar-border bg-card p-8 shadow-soft">
           <div>
             <h1 className="text-xl font-semibold">Staff sign in</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Owner · Kitchen Staff · Rider</p>
+            <p className="mt-1 text-sm text-muted-foreground">Admin · Kitchen Staff · Rider — all sign in here</p>
           </div>
 
           {error && (
