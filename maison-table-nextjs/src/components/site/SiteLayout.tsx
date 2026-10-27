@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu as MenuIcon, ShoppingBag, User, X, MapPin, Phone, Clock, Instagram, ChevronDown } from "lucide-react";
+import { Menu as MenuIcon, ShoppingBag, User, X, MapPin, Phone, Clock, Instagram } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { useCartSummary, useDB, useSession } from "@/lib/store";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -16,64 +16,6 @@ const NAV_LINKS = [
   { href: "/about",   label: "Our Story" },
   { href: "/contact", label: "Visit" },
 ] as const;
-
-const PAGES_LINKS = [
-  { href: "/",               label: "Home",         desc: "Back to the homepage" },
-  { href: "/menu",           label: "Menu",         desc: "Browse our full menu" },
-  { href: "/about",          label: "Our Story",    desc: "How Maison Table began" },
-  { href: "/contact",        label: "Visit Us",     desc: "Address, hours & map" },
-  { href: "/cart",           label: "Cart",         desc: "Review your order" },
-  { href: "/checkout",       label: "Checkout",     desc: "Complete your order" },
-  { href: "/account",        label: "My Account",   desc: "Profile & settings" },
-  { href: "/account/orders", label: "My Orders",    desc: "Track past orders" },
-  { href: "/login",          label: "Sign In",      desc: "Customer login" },
-  { href: "/register",       label: "Register",     desc: "Create an account" },
-  { href: "/admin/login",    label: "Staff Portal", desc: "Admin · Kitchen · Rider" },
-] as const;
-
-function PagesDropdown({ light }: { light: boolean }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-sm font-medium opacity-85 transition hover:opacity-100"
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        Pages <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
-      </button>
-
-      {open && (
-        <div className="absolute left-1/2 top-full mt-3 w-72 -translate-x-1/2 rounded-2xl border border-border bg-background shadow-lg ring-1 ring-black/5">
-          <div className="grid grid-cols-1 divide-y divide-border">
-            {PAGES_LINKS.map((p) => (
-              <Link
-                key={p.href}
-                href={p.href}
-                onClick={() => setOpen(false)}
-                className="flex flex-col px-4 py-3 hover:bg-muted/60 first:rounded-t-2xl last:rounded-b-2xl"
-              >
-                <span className="text-sm font-medium">{p.label}</span>
-                <span className="text-xs text-muted-foreground">{p.desc}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function SiteLayout({ children, transparent = false }: { children: ReactNode; transparent?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -109,7 +51,6 @@ export function SiteLayout({ children, transparent = false }: { children: ReactN
                 {n.label}
               </Link>
             ))}
-            <PagesDropdown light={light} />
           </nav>
           <div className="flex items-center gap-2">
             <Link href={session.customer ? "/account" : "/login"} aria-label="Account" className="hidden size-10 place-items-center rounded-full hover:bg-foreground/10 sm:grid">
@@ -129,10 +70,6 @@ export function SiteLayout({ children, transparent = false }: { children: ReactN
           <nav aria-label="Mobile" className="container-site flex flex-col gap-1 border-t border-border bg-background pb-6 pt-3 md:hidden">
             {NAV_LINKS.map((n) => (
               <Link key={n.href} href={n.href} onClick={() => setMobile(false)} className="font-display rounded-lg px-2 py-3 text-2xl">{n.label}</Link>
-            ))}
-            <p className="px-2 pt-4 pb-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Pages</p>
-            {PAGES_LINKS.map((p) => (
-              <Link key={p.href} href={p.href} onClick={() => setMobile(false)} className="rounded-lg px-2 py-2 text-base text-foreground hover:bg-muted">{p.label}</Link>
             ))}
             <Button asChild variant="hero" className="mt-3 h-12"><Link href="/menu" onClick={() => setMobile(false)}>Order now</Link></Button>
           </nav>
