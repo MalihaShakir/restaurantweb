@@ -145,5 +145,4 @@ export default function RidersPage() {
   );
 }
 
-// cn import needed
-import { cn } from "@/lib/utils";
+
